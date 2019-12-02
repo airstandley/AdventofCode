@@ -9,10 +9,20 @@ def generate_input(filepath):
             yield int(line)
 
 
+def calculate_fuel_requirement(mass):
+    # Calculate the fuel required for a given mass
+    fuel = math.floor(mass / 3) - 2
+    return fuel
+
+
 def calculate_module_fuel_requirement(module_mass):
-    # Calculate the fuel required for a module given it's mass
-    module_fuel = math.floor(module_mass / 3) - 2
-    return module_fuel
+    required_fuel = total_fuel = 0
+    remaining_mass = module_mass
+    while remaining_mass > 0:
+        remaining_mass = required_fuel = calculate_fuel_requirement(remaining_mass)
+        if required_fuel > 0:
+            total_fuel += required_fuel
+    return total_fuel
 
 
 def calculate_fuel_counter_upper(module_masses):
