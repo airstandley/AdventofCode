@@ -15,6 +15,14 @@ def calculate_fuel_requirement(mass):
     return fuel
 
 
+def calculate_fuel_requirement_recursive(mass):
+    fuel = math.floor(mass / 3) - 2
+    if fuel > 0:
+        return fuel + calculate_fuel_requirement_recursive(fuel)
+    else:
+        return 0
+
+
 def calculate_module_fuel_requirement(module_mass):
     required_fuel = total_fuel = 0
     remaining_mass = module_mass
@@ -26,7 +34,7 @@ def calculate_module_fuel_requirement(module_mass):
 
 
 def calculate_fuel_counter_upper(module_masses):
-    return sum(map(calculate_module_fuel_requirement, module_masses))
+    return sum(map(calculate_fuel_requirement_recursive, module_masses))
 
 
 if __name__ == "__main__":
