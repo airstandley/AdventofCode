@@ -1,5 +1,5 @@
 import os
-
+import copy
 
 def get_program(filepath):
     # Load the comma separated intcode program from a file into memory (a list).
@@ -8,13 +8,13 @@ def get_program(filepath):
     return incode
 
 
-def restore_state(program):
-    program[1] = 12
-    program[2] = 2
-    return program
-
-
 class IntCodeComputer:
+
+    @staticmethod
+    def restore_state(program, noun, verb):
+        program[1] = noun
+        program[2] = verb
+        return program
 
     def run(self, program):
         self.program = program
@@ -47,12 +47,24 @@ class IntCodeComputer:
         ops[opcode](inputs)
 
 
+def noun_verb_search(program, desired_output):
+    computer = IntCodeComputer()
+    for noun in range(100):
+        for verb in range(100):
+            test_state = copy.copy(program)
+            computer.restore_state(test_state, noun, verb)
+            output = computer.run(test_state)[0]
+            if output == desired_output:
+                return noun, verb
+    raise ValueError("Desired value {} is unreachable!".format(desired_output))
+
+
 if __name__ == "__main__":
     input_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Input")
     program = get_program(input_file)
 
-    computer = IntCodeComputer()
-    print(computer.run(restore_state(program))[0])
+    noun, verb = noun_verb_search(program, 19690720)
+    print("Solution:", 100 * noun + verb, "Noun:", noun, "Verb:", verb)
 
 
 def tests():
