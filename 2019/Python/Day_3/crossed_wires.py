@@ -72,11 +72,16 @@ def get_wires(filepath):
     return wires
 
 
-def calculate_closest_cross_point(wire_1, wire_2):
-    # Find all intersection points using sets
+def calculate_cross_points(wire_1, wire_2):
     wire_1_unique = set(wire_1)
     wire_2_unique = set(wire_2)
     intersection = wire_1_unique.intersection(wire_2_unique)
+    return intersection
+
+
+def calculate_closest_cross_point(wire_1, wire_2):
+    # Find all intersection points using sets
+    intersection = calculate_cross_points(wire_1, wire_2)
 
     # Find the closest one
     closest_distance = MAX_DISTANCE
@@ -107,19 +112,14 @@ if __name__ == "__main__":
     input_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Input")
 
     wire1, wire2 = get_wires(input_file)
-
-    print([p for p in wire1 if p.y == -154])
-    print([p for p in wire1 if p.x == -154])
-    print([p for p in wire1 if hash(p) == hash(Point(-154, 0))])
+    distance, point = calculate_closest_cross_point(wire1, wire2)
+    print(distance, point)
 
     x_1, y_1 = zip(*[(p.x, p.y) for p in wire1])
     x_2, y_2 = zip(*[(p.x, p.y) for p in wire2])
+    x_i, y_i = zip(*[(p.x, p.y) for p in calculate_cross_points(wire1, wire2)])
 
-    pyplot.plot(x_1, y_1, 'ro')
-    pyplot.plot(x_2, y_2, 'bo')
-    pyplot.axis([-200, 200, -200, 200])
+    pyplot.plot(x_1, y_1, 'r-', x_2, y_2, 'b-')
+    pyplot.plot(x_i, y_i, color='black', marker='x', linestyle='None', markersize=10)
+    pyplot.plot(point.x, point.y, color='gold', marker='X', markersize=20)
     pyplot.show()
-
-    print(Point(-154, 0) in wire1, Point(-154, 0) in wire2)
-    distance, point = calculate_closest_cross_point(wire1, wire2)
-    print(distance, point)
