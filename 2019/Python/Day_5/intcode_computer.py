@@ -24,9 +24,10 @@ class IntCodeComputer:
     def run(self, program):
         self.program = program
         self.running = True
-        self.program_counter = 0
+        self.instruction_pointer = 0
+        self.next_instruction_pointer = None
         while self.running:
-            opcode = self.program[self.program_counter]
+            opcode = self.program[self.instruction_pointer]
             method, input_modes = self.get_method(opcode)
             inputs = self.get_inputs(input_modes)
             self.perform_operation(method, inputs)
@@ -45,6 +46,25 @@ class IntCodeComputer:
     def output(self, value):
         print(value)
 
+    def jump_if_true(self, test, value):
+        if test:
+            self.next_instruction_pointer = value
+
+    def jump_if_false(self, test, value):
+        self.jump_if_true(not test, value)
+
+    def less_than(self, x, y, store_pos):
+        if x < y:
+            self.program[store_pos] = 1
+        else:
+            self.program[store_pos] = 0
+
+    def equals(self, x, y, store_pos):
+        if x == y:
+            self.program[store_pos] = 1
+        else:
+            self.program[store_pos] = 0
+
     def halt(self):
         self.running = False
 
@@ -54,6 +74,10 @@ class IntCodeComputer:
             2: (self.multiply, [READ_PARAM, READ_PARAM, WRITE_PARAM]),
             3: (self.input, [WRITE_PARAM]),
             4: (self.output, [READ_PARAM]),
+            5: (self.jump_if_true, [READ_PARAM, READ_PARAM]),
+            6: (self.jump_if_false, [READ_PARAM, READ_PARAM]),
+            7: (self.less_than, [READ_PARAM, READ_PARAM, WRITE_PARAM]),
+            8: (self.equals, [READ_PARAM, READ_PARAM, WRITE_PARAM]),
             99: (self.halt, []),
         }
         # Work with strings for this parsing because it's easier.
@@ -73,7 +97,7 @@ class IntCodeComputer:
     def get_inputs(self, input_modes):
         codes = []
         inputs = []
-        for i, arg in enumerate(input_modes, start=self.program_counter+1):
+        for i, arg in enumerate(input_modes, start=self.instruction_pointer + 1):
             mode, arg_type = arg
             codes.append(self.program[i])
             if mode == 0:
@@ -97,7 +121,10 @@ class IntCodeComputer:
         return method(*inputs)
 
     def increment_program_counter(self, inputs):
-        self.program_counter += (1 + len(inputs))
+        if self.next_instruction_pointer is None:
+            self.next_instruction_pointer = self.instruction_pointer + (1 + len(inputs))
+        self.instruction_pointer = self.next_instruction_pointer
+        self.next_instruction_pointer = None
 
 
 def tests():
