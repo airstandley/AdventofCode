@@ -21,21 +21,27 @@ def check_password_is_valid(password):
     if len(password) != 6:
         return False
 
-    double = False
-    last_digit = -1
+    doubles = set()
+    voided_doubles = set()
+    memory = [-1, -1]  # Now we have to track the last two digits
     for digit in password:
         try:
             digit = int(digit)
         except ValueError as e:
             return False  # Only numbers are allowed
-        if digit == last_digit:
-            double = True
-        elif digit < last_digit:
+        if digit == memory[0]:
+            if digit == memory[1]:
+                # If we there are three or more in a row it can't count for the double
+                voided_doubles.add(digit)
+            else:
+                # It's a valid double
+                doubles.add(digit)
+        elif digit < memory[0]:
             return False  # Decreasing from the last digit is not allowed
-        last_digit = digit
-    if not double:
+        memory[1] = memory[0]
+        memory[0] = digit
+    if not (doubles - voided_doubles):
         return False  # At least one double digit is required.
-
     return True
 
 
@@ -54,6 +60,11 @@ def tests():
     assert check_password_is_valid("111111") is False
     assert check_password_is_valid("223450") is False
     assert check_password_is_valid("123789") is False
+
+    assert check_password_is_valid("112233") is True
+    assert check_password_is_valid("123444") is False
+    assert check_password_is_valid("111122") is True
+    assert check_password_is_valid("112233") is True
     print("Tests Passed")
 
 
