@@ -1,4 +1,5 @@
 import os
+from matplotlib import pyplot
 
 MAX_DISTANCE = 999999999999999
 
@@ -16,7 +17,7 @@ class Point:
 
     def __eq__(self, other):
         if isinstance(other, Point):
-            return hash(other) == hash(self)
+            return other.x == self.x and other.y == self.y
         else:
             return False
 
@@ -106,6 +107,19 @@ if __name__ == "__main__":
     input_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Input")
 
     wire1, wire2 = get_wires(input_file)
+
+    print([p for p in wire1 if p.y == -154])
+    print([p for p in wire1 if p.x == -154])
+    print([p for p in wire1 if hash(p) == hash(Point(-154, 0))])
+
+    x_1, y_1 = zip(*[(p.x, p.y) for p in wire1])
+    x_2, y_2 = zip(*[(p.x, p.y) for p in wire2])
+
+    pyplot.plot(x_1, y_1, 'ro')
+    pyplot.plot(x_2, y_2, 'bo')
+    pyplot.axis([-200, 200, -200, 200])
+    pyplot.show()
+
     print(Point(-154, 0) in wire1, Point(-154, 0) in wire2)
     distance, point = calculate_closest_cross_point(wire1, wire2)
     print(distance, point)
