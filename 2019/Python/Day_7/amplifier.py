@@ -1,46 +1,67 @@
 import os
 import copy
+import threading
+import queue
 from itertools import permutations
 from intcode_computer import get_program, IntCodeComputer
 
 
 class AmplifierIntCodeComputer(IntCodeComputer):
     """
-    IntCode computer that takes inputs at runtime and stores outputs.
+    IntCode computer that takes inputs and writes outputs via queues. Designed to run in it's own thread.
     """
 
-    def __init__(self, program):
+    def __init__(self, program, input_queue, output_queue):
         self.program = copy.copy(program)
+        self.input_queue = input_queue
+        self.output_queue = output_queue
 
-    def run(self, inputs=None):
-        self.inputs = inputs or []
-        self.outputs = []
+    def run(self):
         return super().run(copy.copy(self.program))
 
     def input(self, store_pos):
-        input_value = self.inputs.pop(0)
+        input_value = self.input_queue.get()
         self.program[store_pos] = input_value
 
     def output(self, value):
-        self.outputs.append(value)
+        self.output_queue.put(value)
 
 
 class AmplifierCircuit:
 
     def __init__(self, program):
+        self.io_queues = [
+            queue.Queue(2),
+            queue.Queue(2),
+            queue.Queue(2),
+            queue.Queue(2),
+            queue.Queue(2),
+        ]
         self.circuit = [
-            AmplifierIntCodeComputer(program),
-            AmplifierIntCodeComputer(program),
-            AmplifierIntCodeComputer(program),
-            AmplifierIntCodeComputer(program),
-            AmplifierIntCodeComputer(program)
+            AmplifierIntCodeComputer(program, self.io_queues[0], self.io_queues[1]),
+            AmplifierIntCodeComputer(program, self.io_queues[1], self.io_queues[2]),
+            AmplifierIntCodeComputer(program, self.io_queues[2], self.io_queues[3]),
+            AmplifierIntCodeComputer(program, self.io_queues[3], self.io_queues[4]),
+            AmplifierIntCodeComputer(program, self.io_queues[4], self.io_queues[0])
         ]
 
     def run(self, phase_settings):
-        output = 0
-        for amplifier, phase_setting in zip(self.circuit, phase_settings):
-            amplifier.run([phase_setting, output])
-            output = amplifier.outputs[0]
+        for io_queue, phase_setting in zip(self.io_queues, phase_settings):
+            io_queue.put_nowait(phase_setting)
+        self.io_queues[0].put_nowait(0)
+
+        # Start the amplifiers
+        threads = []
+        for amplifier in self.circuit:
+            thread = threading.Thread(target=amplifier.run)
+            threads.append(thread)
+            thread.start()
+
+        # Block until all threads are done
+        for thread in threads:
+            thread.join()
+
+        output = self.io_queues[0].get_nowait()
         return output
 
 
