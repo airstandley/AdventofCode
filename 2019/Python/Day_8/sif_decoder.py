@@ -66,11 +66,48 @@ def verify_image(layers):
     return one_count * two_count
 
 
+def squash_layers(layers):
+    # Squash the layers of an image.
+    squash = None
+
+    for layer in layers:
+        if squash is None:
+            squash = layer
+            continue
+
+        for h, row in enumerate(layer):
+            for w, pixel in enumerate(row):
+                if squash[h][w] == 2:
+                    squash[h][w] = pixel
+
+    return squash
+
+
+def print_image(image):
+    # Print single layer black and white image to console
+    for row in image:
+        line = ""
+        for pixel in row:
+            if pixel == 0:
+                line += " "
+            else:
+                line += "+"
+        print(line)
+
+
 def tests():
-    data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2]
-    layers = decode_image_layers(data, w=3, h=2)
-    assert layers[0] == [[1, 2, 3], [4, 5, 6]]
-    assert layers[1] == [[7, 8, 9], [0, 1, 2]]
+    data_1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2]
+    layers_1 = decode_image_layers(data_1, w=3, h=2)
+    assert layers_1[0] == [[1, 2, 3], [4, 5, 6]]
+    assert layers_1[1] == [[7, 8, 9], [0, 1, 2]]
+
+    data_2 = [0, 2, 2, 2, 1, 1, 2, 2, 2, 2, 1, 2, 0, 0, 0, 0]
+    layers_2 = decode_image_layers(data_2, w=2, h=2)
+    assert layers_2[0] == [[0, 2], [2, 2]]
+    assert layers_2[1] == [[1, 1], [2, 2]]
+    assert layers_2[2] == [[2, 2], [1, 2]]
+    assert layers_2[3] == [[0, 0], [0, 0]]
+    assert squash_layers(layers_2) == [[0, 1], [1, 0]]
 
 
 if __name__ == "__main__":
@@ -80,5 +117,7 @@ if __name__ == "__main__":
     image_data = get_image_data(input_file)
     layers = decode_image_layers(image_data, w=25, h=6)
     print(verify_image(layers))
+    image = squash_layers(layers)
+    print_image(image)
 
 
