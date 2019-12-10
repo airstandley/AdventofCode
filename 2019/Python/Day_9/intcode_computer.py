@@ -36,8 +36,19 @@ class IntCodeComputer:
             program[2] = verb
         return program
 
-    def run(self, noun=None, verb=None):
-        self.program_memory = self.restore_state(copy.copy(self.program), noun, verb)
+    @staticmethod
+    def initialize_program_memory(program, memory_allocation_size=None):
+        # Would be nice to instead allow memory to dynamically grow as the program needs
+        memory_allocation_size = memory_allocation_size or len(program)
+        program_memory = [0] * memory_allocation_size
+        for i, v in enumerate(program):
+            program_memory[i] = v
+        return program_memory
+
+    def run(self, noun=None, verb=None, memory_allocation_size=None):
+        self.program_memory = self.restore_state(
+            self.initialize_program_memory(self.program, memory_allocation_size), noun, verb
+        )
         self.relative_base = 0
         self.instruction_pointer = 0
         self.next_instruction_pointer = None
@@ -75,7 +86,7 @@ class IntCodeComputer:
     def output(self, address):
         value = self.program_memory[address]
         if self.output_queue is None:
-            print(value)
+            print("Output:{}".format(value))
         elif hasattr(self.output_queue, 'push'):
             self.output_queue.push(value)
         elif hasattr(self.output_queue, 'append'):
@@ -185,8 +196,20 @@ def tests():
     output_6 = IntCodeComputer([1, 1, 1, 4, 99, 5, 6, 0, 99]).run(noun=0, verb=1)
     assert output_6 == [11, 0, 1, 4, 1, 5, 6, 0, 99]
 
-    print("Maths Tests Pass")
+    """
+    3,9,8,9,10,9,4,9,99,-1,8 - Output 1 if the input is equal to 8, otherwise 0. (Position Mode)
+    3,9,7,9,10,9,4,9,99,-1,8 - Output 1 if the input is less then 8, otherwise 0. (Position Mode)
+    3,3,1108,-1,8,3,4,3,99 - Output 1 if the input is equal to 8, otherwise 0. (Intermediate Mode)
+    3,3,1107,-1,8,3,4,3,99 - Output 1 if the input is less then 8, otherwise 0. (Intermediate Mode)
 
+    3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9 - Output 0 if the input was 0, else 1 (Position Mode)
+    3,3,1105,-1,9,1101,0,0,12,4,12,99,1 - Output 0 if the input was 0, else 1 (Intermediate Mode)
+
+    3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+    999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99
+    Output 999 if the input value is below 8, output 1000 if the input value is equal to 8, or output 1001 if the input 
+    value is greater than 8.
+    """
     test_cases = [
         ([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [8], [1]),
         ([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [6], [0]),
@@ -222,6 +245,7 @@ def tests():
             ], [9], [1001]
         ),
     ]
+
     for program, inputs, expected_outputs in test_cases:
         outputs = []
         computer = IntCodeComputer(program, inputs, outputs)
@@ -232,9 +256,25 @@ def tests():
             print(program, outputs, expected_outputs)
             raise
 
-    print("Logic and Input Modes 0,1 Tests Pass")
-
-    print("Input Mode 2 Tests Pass")
+    """
+    109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99 takes no input and produces a copy of itself as output.
+    1102,34915192,34915192,7,4,7,99,0 should output a 16-digit number.
+    104,1125899906842624,99 should output the large number in the middle.
+    """
+    test_cases = [
+        ([109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99], [], [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99], 1000),
+        ([1102,34915192,34915192,7,4,7,99,0], [], [1219070632396864], None),
+        ([104,1125899906842624,99], [], [1125899906842624], None),
+    ]
+    for program, inputs, expected_outputs, required_memory in test_cases:
+        outputs = []
+        computer = IntCodeComputer(program, inputs, outputs)
+        try:
+            computer.run(memory_allocation_size=required_memory)
+            assert outputs == expected_outputs
+        except (AssertionError, IndexError):
+            print(program, outputs, expected_outputs)
+            raise
 
     print("Tests Done")
 
@@ -246,4 +286,4 @@ if __name__ == "__main__":
     program = get_program(input_file)
 
     computer = IntCodeComputer(program)
-    computer.run()
+    computer.run(memory_allocation_size=10000)
