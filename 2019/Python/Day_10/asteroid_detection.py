@@ -25,7 +25,8 @@ def get_asteroid_map(filepath):
     return generate_map_from_data(data)
 
 
-def block_off_line_of_sight(asteroid_map, coordinates, line_of_sight_vector):
+def find_line_of_sight_points(asteroid_map, coordinates, line_of_sight_vector):
+    points = []
     y_min = -1
     y_max = len(asteroid_map)
     x_min = -1
@@ -34,9 +35,17 @@ def block_off_line_of_sight(asteroid_map, coordinates, line_of_sight_vector):
     while True:
         x, y = x + line_of_sight_vector[0], y + line_of_sight_vector[1]
         if (y_min < y < y_max) and (x_min < x < x_max):
-            asteroid_map[y][x] = OBSCURED
+            points.append((x,y))
         else:
-            return
+            # Search is done
+            return points
+
+
+def block_off_line_of_sight(asteroid_map, coordinates, line_of_sight_vector):
+    points = find_line_of_sight_points(asteroid_map, coordinates, line_of_sight_vector)
+    for point in points:
+        x, y = point
+        asteroid_map[y][x] = OBSCURED
 
 
 def reduce_vector(vector):
@@ -121,6 +130,66 @@ def determine_best_monitor_location(asteroid_map):
     return best_location, max_view_count
 
 
+def fire_laser(asteroid_map, location, vector):
+    points = find_line_of_sight_points(asteroid_map, location, vector)
+
+    if points:
+        for y, row in enumerate(asteroid_map):
+            output = []
+            for x, space in enumerate(row):
+                output.append("*" if (x,y) in points else space)
+            print(output)
+    for point in points:
+        if point == ASTEROID:
+            print("BOOM ", point)
+            return point
+    return None
+
+
+def vaporize_asteroids(asteroid_map, station_location):
+    updated_map = copy.deepcopy(asteroid_map)
+    updated_map[station_location[1]][station_location[0]] = "X"
+    hits = []
+
+    def determine_hit(x, y):
+        if x == 0 and y == 0:
+            return
+        direction_vector = reduce_vector((x, y))
+        print("Checking", direction_vector, x, y)
+        hit_roid = fire_laser(updated_map, station_location, direction_vector)
+        if hit_roid:
+            hits.append(hit_roid)
+            updated_map[hit_roid[1]][hit_roid[0]] = EMPTY
+
+    # Rotate around clockwise starting at (0,1)
+    # Increment by the smallest possible vector (0,0) to (max_y, max_x)??
+    # I DONT KNOW HOW TO DO THIS AAAARTGAGASER
+    max_y = len(asteroid_map)
+    max_x = len(asteroid_map[0])
+    max_vector = max(max_x, max_y)
+    while True:
+        # FIRING MY LAZER!!!!!!
+        y_offset = -max_vector
+        x_offset = 0
+        hit_count = len(hits)
+        # I don't know how to rotate clockwise well....
+        while x_offset <= max_vector:
+            determine_hit(x_offset, y_offset)
+            x_offset += 1
+        while y_offset <= max_vector:
+            y_offset += 1
+            determine_hit(x_offset, y_offset)
+        while x_offset >= -max_vector:
+            x_offset += -1
+            determine_hit(x_offset, y_offset)
+        while y_offset >= -max_vector:
+            y_offset += -1
+            determine_hit(x_offset, y_offset)
+        if len(hits) == hit_count:
+            # Were done
+            return hits
+
+
 def tests():
     asteroid_map_data = generate_map_from_data([
         ".#..#",
@@ -138,10 +207,14 @@ def tests():
 
 
 if __name__ == "__main__":
-    # tests()
+    tests()
 
     input_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Input")
     asteroid_map = get_asteroid_map(input_file)
 
-    location, view_count = determine_best_monitor_location(asteroid_map)
-    print(location, view_count)
+    # location, view_count = determine_best_monitor_location(asteroid_map)
+    # print(location, view_count)
+    location = (19, 11)
+    hits = vaporize_asteroids(asteroid_map, location)
+    asteroid_200 = hits[199]
+    print(asteroid_200[0]*10 + asteroid_200[1])
