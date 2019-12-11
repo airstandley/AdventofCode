@@ -63,6 +63,8 @@ class Vector:
         # atan2 returns -pi/2(-180) to pi/2(180) we want it to return 0 - pi(360)
         if other:
             angle = angle - other.angle()
+            if angle < 0:
+                angle = 360 + angle
         return angle
 
     # def alt_angle(self, other):
