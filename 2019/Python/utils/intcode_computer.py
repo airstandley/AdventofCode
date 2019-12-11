@@ -15,7 +15,7 @@ WRITE_PARAM = 1
 
 
 class IntCodeComputer:
-    debug = True
+    debug = False
     READ_TIMEOUT = 1
     WRITE_TIMEOUT = 1
     MAX_TIMEOUTS = 10
