@@ -15,10 +15,10 @@ WRITE_PARAM = 1
 
 
 class IntCodeComputer:
-    debug = False
+    debug = True
     READ_TIMEOUT = 1
     WRITE_TIMEOUT = 1
-    MAX_TIMEOUTS = 10000
+    MAX_TIMEOUTS = 10
 
     def __init__(self, program, input_queue=None, output_queue=None, name="IntCodeComputer"):
         self.program = copy.copy(program)
@@ -63,7 +63,9 @@ class IntCodeComputer:
             method, input_modes = self.get_method(opcode)
             inputs = self.get_inputs(input_modes)
             if self.debug:
-                print("Instruction:{}({}) Inputs:{}({})".format(opcode, method.__name__, inputs, input_modes))
+                print("{}: Instruction:{}({}) Inputs:{}({})".format(
+                    self.name, opcode, method.__name__, inputs, input_modes
+                ))
             self.perform_operation(method, inputs)
             self.increment_program_counter(inputs)
         return self.program_memory
@@ -78,35 +80,41 @@ class IntCodeComputer:
         if self.input_queue is None:
             value = int(input("Input:"))
         elif hasattr(self.input_queue, 'get'):
-            timeouts = 0
-            while self.running and timeouts < self.MAX_TIMEOUTS:
-                try:
-                    value = self.input_queue.get(timeout=self.READ_TIMEOUT)
-                except queue.Empty:
-                    timeouts += 1
-                    if self.debug:
-                        print("Input Timeout {} ({})".format(timeouts, self.input_queue.qsize()))
+            value = self.input_queue.get()
+            # timeouts = 0
+            # while self.running and timeouts < self.MAX_TIMEOUTS:
+            #     try:
+            #         value = self.input_queue.get(timeout=self.READ_TIMEOUT)
+            #     except queue.Empty:
+            #         timeouts += 1
+            #         if self.debug:
+            #             print("Input Timeout {} ({})".format(timeouts, self.input_queue.qsize()))
         elif hasattr(self.input_queue, 'pop'):
             value = self.input_queue.pop(0)
         else:
             raise RuntimeError("Invalid input configured.")
 
+        if self.debug:
+            print("{}: Received {}".format(self.name, value))
         self.program_memory[store] = value
 
     def output(self, address):
         value = self.program_memory[address]
+        if self.debug:
+            print("{}: Storing {}".format(self.name, value))
+
         if self.output_queue is None:
             print("Output:{}".format(value))
         elif hasattr(self.output_queue, 'put'):
-            timeouts = 0
-            while self.running and timeouts < self.MAX_TIMEOUTS:
-                try:
-                    self.output_queue.put(value, timeout=self.WRITE_TIMEOUT)
-                except queue.Full:
-                    timeouts += 1
-                    if self.debug:
-                        print("Output Timeout {} ({})".format(timeouts, self.ouput_queue.qsize()))
             self.output_queue.put(value)
+            # timeouts = 0
+            # while self.running and timeouts < self.MAX_TIMEOUTS:
+            #     try:
+            #         self.output_queue.put(value, timeout=self.WRITE_TIMEOUT)
+            #     except queue.Full:
+            #         timeouts += 1
+            #         if self.debug:
+            #             print("Output Timeout {} ({})".format(timeouts, self.output_queue.qsize()))
         elif hasattr(self.output_queue, 'append'):
             self.output_queue.append(value)
         else:

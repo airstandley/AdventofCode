@@ -71,9 +71,9 @@ class Vector:
     #     )
     #     return math.degrees(angle)
 
-    # def nearest_integer(self):
-    #     # Return the nearest vector with only integer components
-    #     return Vector(int(self.x), int(self.y))
+    def nearest_integer(self):
+        # Return the nearest vector with only integer components
+        return Vector(int(self.x), int(self.y))
 
     def reduce(self):
         """

@@ -3,7 +3,8 @@ import copy
 import threading
 import queue
 from itertools import permutations
-from intcode_computer import get_program, IntCodeComputer
+# from intcode_computer import get_program, IntCodeComputer
+from utils.intcode_computer import get_program, IntCodeComputer
 
 
 class AmplifierIntCodeComputer(IntCodeComputer):
@@ -39,17 +40,17 @@ class AmplifierCircuit:
             queue.Queue(2),
         ]
         self.circuit = [
-            AmplifierIntCodeComputer(program, self.io_queues[0], self.io_queues[1], "Amp 1"),
-            AmplifierIntCodeComputer(program, self.io_queues[1], self.io_queues[2], "Amp 2"),
-            AmplifierIntCodeComputer(program, self.io_queues[2], self.io_queues[3], "Amp 3"),
-            AmplifierIntCodeComputer(program, self.io_queues[3], self.io_queues[4], "Amp 4"),
-            AmplifierIntCodeComputer(program, self.io_queues[4], self.io_queues[0], "Amp 5")
+            IntCodeComputer(program, self.io_queues[0], self.io_queues[1], "Amp 1"),
+            IntCodeComputer(program, self.io_queues[1], self.io_queues[2], "Amp 2"),
+            IntCodeComputer(program, self.io_queues[2], self.io_queues[3], "Amp 3"),
+            IntCodeComputer(program, self.io_queues[3], self.io_queues[4], "Amp 4"),
+            IntCodeComputer(program, self.io_queues[4], self.io_queues[0], "Amp 5")
         ]
 
     def run(self, phase_settings):
         for io_queue, phase_setting in zip(self.io_queues, phase_settings):
-            io_queue.put_nowait(phase_setting)
-        self.io_queues[0].put_nowait(0)
+            io_queue.put(phase_setting)
+        self.io_queues[0].put(0)
 
         # Start the amplifiers
         threads = []
@@ -82,7 +83,9 @@ def tests():
     circuit_1 = AmplifierCircuit(program_1)
     phase_sequence_1 = (4,3,2,1,0)
     max_thrust_1 = 43210
-    assert circuit_1.run(phase_sequence_1) == max_thrust_1
+    test_thrust = circuit_1.run(phase_sequence_1)
+    print(test_thrust)
+    assert test_thrust == max_thrust_1
     assert calculate_max_phase_setting(circuit_1, range(5))[0] == phase_sequence_1
     print("Test 1 Passed")
 
