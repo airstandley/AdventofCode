@@ -15,9 +15,10 @@ class Terminal:
         4: "B",
     }
 
-    def __init__(self, input_queue=None, width=10, height=10, debug=True):
+    def __init__(self, input_queue=None, width=10, height=10, debug=False):
         self.input_queue = input_queue
         self.grid = self.generate_grid(width, height)
+        self.score = 0
         self.running = False
         self.debug = debug
 
@@ -28,10 +29,15 @@ class Terminal:
             grid.append([0]*width)
         return grid
 
-    def update(self, x, y, tile_id):
+    def update(self, x, y, value):
         if self.debug:
-            print("Update:", "({}, {})".format(x, y), "{}:{}".format(tile_id, self.tiles[tile_id]))
-        self.grid[y][x] = tile_id
+            print("Update:", "({}, {})".format(x, y), value)
+        if x == -1 and y == 0:
+            # Score Update
+            self.score = value
+        else:
+            # Tile Update
+            self.grid[y][x] = value
 
     def render(self):
         if not self.debug:
@@ -42,6 +48,8 @@ class Terminal:
             for tile_id in row:
                 line += self.tiles[tile_id]
             print(line)
+        print("====================")
+        print(self.score)
         print("====================")
 
     def input(self):
