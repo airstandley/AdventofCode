@@ -23,6 +23,8 @@ class Terminal:
     def __init__(self, stdout=None, stdin=None, width=10, height=10, debug=False, log=None):
         self.stdout = stdout
         self.stdin = stdin
+        self.width = width
+        self.height = height
         self.grid = self.generate_grid(width, height)
         self.score = 0
         self.running = False
@@ -35,8 +37,13 @@ class Terminal:
         self.screen = curses.initscr()
         curses.noecho()
         curses.cbreak()
+        curses.curs_set(0)
         # self.screen.nodelay(True)
         self.screen.keypad(True)
+        self.game_win = curses.newwin(self.height, self.width, 0, 0)
+        self.score_win = curses.newwin(10, self.width, self.height, 0)
+        self.score_win.addstr(0, 0, "=" * self.width)
+        self.score_win.addstr(2, 0, "=" * self.width)
 
     def deactivate_curses(self):
         self.log_debug("Deactivating Curses")
@@ -66,11 +73,15 @@ class Terminal:
         if x == -1 and y == 0:
             # Score Update
             self.score = value
+            if self.screen:
+                self.score_win.addstr(1, 0, str(value))
+                self.score_win.refresh()
         else:
             # Tile Update
             self.grid[y][x] = value
             if self.screen:
-                self.screen.addstr(y, x, self.tiles[value])
+                self.game_win.addstr(y, x, self.tiles[value])
+                self.game_win.refresh()
 
     def vanilla_render(self):
         if not self.debug:
@@ -90,6 +101,8 @@ class Terminal:
             self.vanilla_render()
         else:
             self.screen.refresh()
+            self.game_win.refresh()
+            self.score_win.refresh()
 
     def read_stdout(self):
         if self.stdout is None:
@@ -116,19 +129,17 @@ class Terminal:
         if key == ord('q'):
             # Quit
             self.running = False
-            return 0
         elif key == curses.KEY_LEFT:
-            # Left arrow (Left Joystick Position)
-            return -1
+            # Left arrow ==> (Left Joystick Position)
+            self.stdin.put(-1)
         elif key == curses.KEY_RIGHT:
-            # Right arrow (Right Joystick Position)
-            return 1
-        elif key == -1:
-            # No input (Neutral Joystick Position)
-            return 0
+            # Right arrow ==> (Right Joystick Position)
+            self.stdin.put(1)
+        elif key == -1 or key == curses.KEY_DOWN:
+            # No input/Down arrow ==> (Neutral Joystick Position)
+            self.stdin.put(0)
         else:
             self.log_debug("Unknown Input: {}".format(key))
-            return 0
 
     def process_events(self):
         if self.stdout.qsize() >= 3:
@@ -147,8 +158,8 @@ class Terminal:
                 self.render()
                 if self.process_events():
                     continue  # Keep processing
-                time.sleep(1)
-                self.stdin.put(self.read_input())
+                # time.sleep(1)
+                self.read_input()
         except Exception as e:
             self.log_debug(str(e))
         finally:
@@ -168,7 +179,7 @@ def run(program):
     terminal_socket = queue.Queue()
     joystick_socket = queue.Queue()
     with open(debug_log, mode="w") as log:
-        terminal = Terminal(terminal_socket, joystick_socket, 50, 50, debug=True, log=log)
+        terminal = Terminal(terminal_socket, joystick_socket, width=38, height=22, debug=True, log=log)
         computer = IntCodeComputer(
             program, input_queue=joystick_socket, output_queue=terminal_socket, name="ArcadeCabinet",
             debug=True, log=log
