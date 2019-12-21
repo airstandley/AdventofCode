@@ -5,6 +5,7 @@ import re
 # Need to import Axes3D to register the 3d projection
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from matplotlib import pyplot
+import time
 
 
 from utils.grid_tools_3d import Point3D, Vector3D, Body3D
@@ -127,6 +128,91 @@ def calculate_system_energy(bodies):
     return total_energy
 
 
+def efficent_simulation_tick(bodies):
+    for i, a in enumerate(bodies):
+        for b in bodies[i:]:
+            if a.position.x < b.position.x:
+                a.velocity.x += 1
+                b.velocity.x -= 1
+            elif a.position.x > b.position.x:
+                a.velocity.x -= 1
+                b.velocity.x += 1
+            if a.position.y < b.position.y:
+                a.velocity.y += 1
+                b.velocity.y -= 1
+            elif a.position.y > b.position.y:
+                a.velocity.y -= 1
+                b.velocity.y += 1
+            if a.position.z < b.position.z:
+                a.velocity.z += 1
+                b.velocity.z -= 1
+            elif a.position.z > b.position.z:
+                a.velocity.z -= 1
+                b.velocity.z += 1
+    for body in bodies:
+        body.position.x += body.velocity.x
+        body.position.y += body.velocity.y
+        body.position.z += body.velocity.z
+
+
+def brute_force_it(bodies):
+    history = set()
+    history.add((hash(body) for body in bodies))
+    tick = 0
+    while True:
+        simulation_tick(bodies)
+        tick += 1
+        print(tick)
+        current = (hash(body) for body in bodies)
+        if current in history:
+            break
+        history.add(current)
+    return tick
+
+
+def calculate_periods(bodies):
+    # Had to cheat and look at redit.
+    #  Had not though to consider that
+    #   1) co-ordinates are all independent so you can find the cyclic period for each seperately
+    #   2) If it's a cyclic pattern then the initial state will be the first to repeat so there's no reason to store
+    #       past states
+    x_initial = [(body.position.x, body.velocity.x) for body in bodies]
+    y_initial = [(body.position.y, body.velocity.y) for body in bodies]
+    z_initial = [(body.position.z, body.velocity.z) for body in bodies]
+
+    x_period = None
+    y_period = None
+    z_period = None
+    i = 0
+    while x_period is None or y_period is None or z_period is None:
+        efficent_simulation_tick(bodies)
+        i += 1
+
+        if not x_period and x_initial == [(body.position.x, body.velocity.x) for body in bodies]:
+            print("X Match:", x_initial, [(body.position.x, body.velocity.x) for body in bodies])
+            x_period = i
+        if not y_period and y_initial == [(body.position.y, body.velocity.y) for body in bodies]:
+            print("Y Match:", y_initial, [(body.position.y, body.velocity.y) for body in bodies])
+            y_period = i
+        if not z_period and z_initial == [(body.position.z, body.velocity.z) for body in bodies]:
+            print("Z Match:", z_initial, [(body.position.z, body.velocity.z) for body in bodies])
+            z_period = i
+    return x_period, y_period, z_period
+
+
+def find_least_common_multiple(values):
+    i = 2  # Skip 1
+    max_value = min(*values)
+    while i <= max_value:
+        for v in values:
+            if v % i != 0:
+                break
+        else:
+            return i
+        i += 1
+    return None
+
+
 def tests():
     bodies = [
         Body3D(position=Point3D(x=-1, y=0, z=2), label="A"),
@@ -146,7 +232,7 @@ def tests():
         Body3D(position=Point3D(x=3, y=-6, z=1), velocity=Vector3D(x=3, y=2, z=-3)),
         Body3D(position=Point3D(x=2, y=0, z=4), velocity=Vector3D(x=1, y=-1, z=-1))
     ]
-    simulation_tick(bodies)
+    efficent_simulation_tick(bodies)
     for body, expected in zip(bodies, expected_step_1):
         if body.position != expected.position:
             print("FAILED:", body.position, "!=", expected.position)
@@ -155,7 +241,7 @@ def tests():
         assert body.position == expected.position
         assert body.velocity == expected.velocity
     for _ in range(9):
-        simulation_tick(bodies)
+        efficent_simulation_tick(bodies)
     for body, expected in zip(bodies, expected_step_10):
         if body.position != expected.position:
             print("FAILED:", body.position, "!=", expected.position)
@@ -187,8 +273,32 @@ if __name__ == "__main__":
     input_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Input")
     bodies = get_bodies(get_input(input_file))
 
-    for _ in range(1000):
-        simulation_tick(bodies)
+    # start_one = time.time()
+    # for _ in range(10000):
+    #     simulation_tick(bodies)
+    # stop_one = time.time()
+    #
+    # start_two = time.time()
+    # for _ in range(10000):
+    #     efficent_simulation_tick(bodies)
+    # stop_two = time.time()
+    #
+    # time_one = stop_one-start_one
+    # time_two = stop_two-start_two
+    #
+    # print(time_one/10000*4000000000/60, time_two/10000*4000000000/60)
 
-    print(calculate_system_energy(bodies))
+    # print(calculate_system_energy(bodies))
+
+    # print(brute_force_it(bodies))
+
+    values = calculate_periods(bodies)
+    print(values)
+    lcm = find_least_common_multiple(values)
+    while lcm is not None:
+        values = [v/lcm for v in values]
+        lcm = find_least_common_multiple(values)
+    print(values)
+    x, y, z = values
+    print(x*y*z)
 
