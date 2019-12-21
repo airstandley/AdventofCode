@@ -15,12 +15,11 @@ WRITE_PARAM = 1
 
 
 class IntCodeComputer:
-    debug = False
     READ_TIMEOUT = 1
     WRITE_TIMEOUT = 1
     MAX_TIMEOUTS = 10
 
-    def __init__(self, program, input_queue=None, output_queue=None, name="IntCodeComputer"):
+    def __init__(self, program, input_queue=None, output_queue=None, name="IntCodeComputer", debug=False, log=None):
         self.program = copy.copy(program)
         self.program_memory = None
         self.relative_base = None
@@ -30,6 +29,8 @@ class IntCodeComputer:
         self.input_queue = input_queue
         self.output_queue = output_queue
         self.name = name
+        self.debug = debug
+        self.log_file = log
 
     @staticmethod
     def restore_state(program, noun=None, verb=None):
@@ -48,27 +49,37 @@ class IntCodeComputer:
             program_memory[i] = v
         return program_memory
 
+    def log(self, message):
+        if self.log_file:
+            self.log_file.write(message)
+            self.log_file.write("\n")
+        else:
+            print(message)
+
     def run(self, noun=None, verb=None, memory_allocation_size=None):
-        self.program_memory = self.restore_state(
-            self.initialize_program_memory(self.program, memory_allocation_size), noun, verb
-        )
-        self.relative_base = 0
-        self.instruction_pointer = 0
-        self.next_instruction_pointer = None
-        self.running = True
-        if self.debug:
-            print("Program Start For", self.name)
-        while self.running:
-            opcode = self.program_memory[self.instruction_pointer]
-            method, input_modes = self.get_method(opcode)
-            inputs = self.get_inputs(input_modes)
+        try:
+            self.program_memory = self.restore_state(
+                self.initialize_program_memory(self.program, memory_allocation_size), noun, verb
+            )
+            self.relative_base = 0
+            self.instruction_pointer = 0
+            self.next_instruction_pointer = None
+            self.running = True
             if self.debug:
-                print("{}: Instruction:{}({}) Inputs:{}({})".format(
-                    self.name, opcode, method.__name__, inputs, input_modes
-                ))
-            self.perform_operation(method, inputs)
-            self.increment_program_counter(inputs)
-        return self.program_memory
+                self.log("Program Start For {}".format(self.name))
+            while self.running:
+                opcode = self.program_memory[self.instruction_pointer]
+                method, input_modes = self.get_method(opcode)
+                inputs = self.get_inputs(input_modes)
+                if self.debug:
+                    self.log("{}: Instruction:{}({}) Inputs:{}({})".format(
+                        self.name, opcode, method.__name__, inputs, input_modes
+                    ))
+                self.perform_operation(method, inputs)
+                self.increment_program_counter(inputs)
+            return self.program_memory
+        except Exception as e:
+            self.log(str(e))
 
     def add(self, x, y, store):
         self.program_memory[store] = self.program_memory[x] + self.program_memory[y]
@@ -95,13 +106,13 @@ class IntCodeComputer:
             raise RuntimeError("Invalid input configured.")
 
         if self.debug:
-            print("{}: Received {}".format(self.name, value))
+            self.log("{}: Received {}".format(self.name, value))
         self.program_memory[store] = value
 
     def output(self, address):
         value = self.program_memory[address]
         if self.debug:
-            print("{}: Storing {}".format(self.name, value))
+            self.log("{}: Storing {}".format(self.name, value))
 
         if self.output_queue is None:
             print("Output:{}".format(value))
