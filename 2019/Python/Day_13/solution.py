@@ -31,6 +31,7 @@ class Terminal:
         self.debug = debug
         self.debug_log = log
         self.screen = None
+        self.ai = AI(debug=debug, log=log)
 
     def activate_curses(self):
         self.log_debug("Activating Curses")
@@ -141,6 +142,15 @@ class Terminal:
         else:
             self.log_debug("Unknown Input: {}".format(key))
 
+    def ai_input(self):
+        try:
+            move = self.ai.get_next_move(self.grid)
+        except Exception as e:
+            self.log_debug(str(e))
+            move = 0
+        self.log_debug("AI Move: {}".format(move))
+        self.stdin.put(move)
+
     def process_events(self):
         if self.stdout.qsize() >= 3:
             x = self.read_stdout()
@@ -158,12 +168,61 @@ class Terminal:
                 self.render()
                 if self.process_events():
                     continue  # Keep processing
-                # time.sleep(1)
-                self.read_input()
+                # time.sleep(0.15)
+                # self.read_input()
+                self.ai_input()
         except Exception as e:
             self.log_debug(str(e))
         finally:
             self.deactivate_curses()
+
+
+class AI:
+
+    def __init__(self, debug=True, log=None):
+        self.debug = debug
+        self.log_file = log
+
+    def log(self, message):
+        if self.log_file:
+            self.log_file.write(message)
+            self.log_file.write("\n")
+        else:
+            print(message)
+
+    @staticmethod
+    def find_ball_location(grid):
+        for y, row in enumerate(grid):
+            for x, tile_id in enumerate(row):
+                if tile_id == 4:
+                    return x, y
+        raise ValueError("No Ball in Grid!")
+
+    @staticmethod
+    def find_paddle_location(grid):
+        for y, row in enumerate(grid):
+            for x, tile_id in enumerate(row):
+                if tile_id == 3:
+                    return x, y
+        raise ValueError("No Paddle in Grid!")
+
+    def get_next_move(self, grid):
+        ball = self.find_ball_location(grid)
+        if self.debug:
+            self.log("Ball Location: ({},{})".format(*ball))
+        paddle = self.find_paddle_location(grid)
+        if self.debug:
+            self.log("Paddle Location: ({},{})".format(*paddle))
+
+        if ball[0] < paddle[0]:
+            # Move Left
+            return -1
+        elif ball[0] > paddle[0]:
+            # Move Right
+            return 1
+        else:
+            # Freeze
+            return 0
 
 
 def count_blocks(grid):
@@ -200,7 +259,11 @@ def run(program):
         terminal.running = False
         gui_thread.join()
 
+    blocks = count_blocks(terminal.grid)
     print(count_blocks(terminal.grid))
+    print(terminal.score)
+
+    return blocks
 
 
 def tests():
@@ -213,8 +276,13 @@ if __name__ == "__main__":
     # tests()
 
     input_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Input")
-    program = get_program(input_file)
-    # Insert 2 qurters
-    program[0] = 2
 
-    run(program)
+    while True:
+        program = get_program(input_file)
+        # Insert 2 qurters
+        program[0] = 2
+        remaining_blocks = run(program)
+        if remaining_blocks == 0:
+            print("AI WON!")
+            break
+
