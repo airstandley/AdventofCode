@@ -29,7 +29,7 @@ class Terminal:
         self.score = 0
         self.running = False
         self.debug = debug
-        self.debug_log = log
+        self.log_file = log
         self.screen = None
         self.ai = AI(debug=debug, log=log)
 
@@ -55,10 +55,10 @@ class Terminal:
 
     def log_debug(self, message):
         if self.debug:
-            if self.debug_log:
-                self.debug_log.write(message)
-                self.debug_log.write("\n")
-                self.debug_log.flush()
+            if self.log_file:
+                self.log_file.write(message)
+                self.log_file.write("\n")
+                self.log_file.flush()
             else:
                 print(message)
 
@@ -272,17 +272,54 @@ def tests():
     print("Tests Done")
 
 
+class ArcadeCabinet(IntCodeComputer):
+
+    def __init__(self, program, name="ArcadeCabinet", debug=False, log=None):
+        super().__init__(program, name=name, debug=debug, log=log)
+        self.terminal = Terminal(width=38, height=22, debug=debug, log=log)
+        self.instruction = []
+        self.ai = AI(debug=debug, log=log)
+
+    def output(self, address):
+        value = self.program_memory[address]
+        self.instruction.append(value)
+        if len(self.instruction) == 3:
+            self.terminal.update(*self.instruction)
+            self.terminal.render()
+            self.instruction = []
+
+    def input(self, store):
+        value = self.ai.get_next_move(self.terminal.grid)
+        self.program_memory[store] = value
+
+    def run(self, noun=None, verb=None, memory_allocation_size=None):
+        self.terminal.activate_curses()
+        try:
+            super().run(noun=noun, verb=verb, memory_allocation_size=memory_allocation_size)
+        finally:
+            self.terminal.deactivate_curses()
+
+
 if __name__ == "__main__":
     # tests()
 
     input_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Input")
+    program = get_program(input_file)
+    # Insert 2 quarters
+    program[0] = 2
+    arcade = ArcadeCabinet(program)
+    arcade.run(memory_allocation_size=10000)
 
-    while True:
-        program = get_program(input_file)
-        # Insert 2 qurters
-        program[0] = 2
-        remaining_blocks = run(program)
-        if remaining_blocks == 0:
-            print("AI WON!")
-            break
+    print("Blocks:", count_blocks(arcade.terminal.grid))
+    print("Score:", arcade.terminal.score)
+
+    if False:
+        while True:
+            program = get_program(input_file)
+            # Insert 2 qurters
+            program[0] = 2
+            remaining_blocks = run(program)
+            if remaining_blocks == 0:
+                print("AI WON!")
+                break
 
