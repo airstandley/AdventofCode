@@ -40,6 +40,14 @@ fun countTreesInPath(slope: Slope, angle: Pair<Int, Int>): Int {
     return count
 }
 
+val anglesToCheck = listOf(Pair(1,1), Pair(3,1), Pair(5,1), Pair(7,1), Pair(1,2))
+
 fun main(args: Array<String>) {
     println("First Solution: ${countTreesInPath(Slope(getInput(), Pair(0,0)), Pair(3,1))}")
+    val counts = ArrayList<Int>(anglesToCheck.size)
+    anglesToCheck.forEach { angle -> counts.add(countTreesInPath(Slope(getInput(), Pair(0,0)), angle)) }
+    println("Counts: ${counts}")
+    var sum: Double = 1.0
+    counts.forEach {count -> sum = sum * count}
+    println("Second Solution: ${sum.toBigDecimal().toPlainString()}")
 }
