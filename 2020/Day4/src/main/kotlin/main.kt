@@ -1,5 +1,4 @@
 import java.io.File
-import java.time.Year
 
 fun getInput(): List<String> {
     return File("Input").readLines()
