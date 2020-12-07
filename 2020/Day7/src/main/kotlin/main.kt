@@ -87,10 +87,24 @@ fun findBagsThatCanContainBag(
     return containingBags
 }
 
+fun countBagsContainedByBag(bagType: String, forwardsGraph: MutableMap<String, MutableMap<String, Int>>): Int {
+    var sum = 0
+    val containedBags = forwardsGraph[bagType]
+    if (containedBags != null) {
+        for (key in containedBags.keys) {
+            var bagsPerBag = 1 // Count the bag
+            bagsPerBag += countBagsContainedByBag(key, forwardsGraph) // And all the bags it contains
+            sum += bagsPerBag * containedBags.getOrDefault(key, 0) // However many times it's included
+        }
+    }
+    return sum
+}
+
 const val myBagType = "shiny gold"
 
 fun main(args: Array<String>) {
     val graphs = parseRules(getInput())
     val containingBags = findBagsThatCanContainBag(myBagType, graphs.second)
     println("First Solution: ${containingBags.size}")
+    println("Second Solution: ${countBagsContainedByBag(myBagType, graphs.first)}")
 }
