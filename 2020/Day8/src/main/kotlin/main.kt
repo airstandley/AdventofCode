@@ -4,7 +4,7 @@ fun getInput(): List<String> {
     return File("Input").readLines()
 }
 
-data class Command(val function: (Int) -> Unit, val value: Int)
+data class Command(val name: String, val function: (Int) -> Unit, val value: Int)
 
 fun parseCommand(input:String): Command {
     val parts = input.split(" ")
@@ -25,7 +25,15 @@ fun parseCommand(input:String): Command {
             { v ->  invalid(v, command) }
         }
     }
-    return Command(function, value)
+    return Command(command, function, value)
+}
+
+fun parseProgram(code: List<String>): List<Command> {
+    val program: MutableList<Command> = mutableListOf()
+    for (line in code) {
+        program.add(parseCommand(line))
+    }
+    return program
 }
 
 var accumulator: Long = 0
@@ -51,26 +59,50 @@ fun invalid(value: Int, command:String) {
     throw Exception("Invalid Command $command $value")
 }
 
-fun main(args: Array<String>) {
+fun run(program: List<Command>): Pair<Long, Boolean> {
     accumulator = 0
     programCounter = 0
-    val program = getInput()
-
+    var infinite = false
     val infiniteLoopDetection: MutableMap<Int, List<Long>> = mutableMapOf()
 
     while (programCounter < program.size) {
-        val input = program[programCounter]
-        val command = parseCommand(input)
+        val command = program[programCounter]
         if (programCounter in infiniteLoopDetection) {
             // Since we don't jump based on accumulator yet, if we hit a command twice then we're infinite
-            println("Infinite Loop Detected at $programCounter")
+            //println("Infinite Loop Detected at $programCounter")
+            infinite = true
             break
         } else {
             infiniteLoopDetection[programCounter] = listOf(accumulator)
         }
-        println("$programCounter $input $command")
+        //println("$programCounter ${command.name} ${command.value} $accumulator")
         command.function(command.value)
     }
+    return Pair(accumulator, infinite)
+}
 
-    println("First Solution: $accumulator")
+fun fixProgram(program: List<Command>): Pair<List<Command>, Long> {
+    val fixedProgram: MutableList<Command> = mutableListOf(*program.toTypedArray())
+    for(i in program.indices) {
+        val command = program[i]
+        when (command.name) {
+            "acc" -> continue
+            "nop" -> { fixedProgram[i] = Command("jmp", { v -> jump(v) }, command.value)}
+            "jmp" -> { fixedProgram[i] = Command("nop", { v -> noop(v) }, command.value)}
+        }
+        val result = run(fixedProgram)
+        if (!result.second) {
+            //println("Fixed an infinite loop by changing $command to ${fixedProgram[i]}")
+            return Pair(fixedProgram, result.first)
+        } else {
+            fixedProgram[i] = command
+        }
+    }
+    throw Exception("Unable to Fix the Program!")
+}
+
+fun main(args: Array<String>) {
+    val program = parseProgram(getInput())
+    println("First Solution: ${run(program).first}")
+    println("Second Solution: ${fixProgram(program).second}")
 }
