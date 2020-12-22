@@ -1,5 +1,8 @@
 import java.io.File
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.PI
 
 fun getInput(filename: String): List<String> {
     return File(filename).readLines()
@@ -19,29 +22,11 @@ fun getManhattanDistance(endPosition: Pair<Int, Int>, startPosition: Pair<Int, I
     return abs(x) + abs(y)
 }
 
-fun turn90(currentDirection: Pair<Int, Int>): Pair<Int, Int> {
-    val x: Int
-    val y: Int
-    when(currentDirection.first) {
-        1, -1 -> x = 0
-        0 -> x = if(currentDirection.second > 0) { 1 } else { -1 }
-        else -> throw Exception("Invalid Int vector")
-    }
-    when(currentDirection.second) {
-        1, -1 -> y = 0
-        0 -> y = if(currentDirection.first > 0) { -1 } else { 1 }
-        else -> throw Exception("Invalid Int vector")
-    }
-    return Pair(x,y)
-}
-
-fun turn(currentDirection: Pair<Int, Int>, magnitude: Int): Pair<Int, Int> {
-    when(magnitude) {
-        90 -> return turn90(currentDirection)
-        180 -> return turn90(turn90(currentDirection))
-        270 -> return turn90(turn90(turn90(currentDirection)))
-        else -> throw Exception("Invalid Turn Mag: $magnitude")
-    }
+fun turn(currentDirection: Pair<Int, Int>, angleInDegrees: Int): Pair<Int, Int> {
+    val angleInRadians = angleInDegrees * PI/180
+    val x = currentDirection.first * cos(angleInRadians) - currentDirection.second * sin(angleInRadians)
+    val y = currentDirection.first * sin(angleInRadians) + currentDirection.second * cos(angleInRadians)
+    return Pair(x.toInt(),y.toInt())
 }
 
 fun executeCommand(
@@ -57,8 +42,8 @@ fun executeCommand(
         SOUTH -> newPosition = Pair(currentPosition.first, currentPosition.second - magnitude)
         EAST -> newPosition = Pair(currentPosition.first + magnitude, currentPosition.second)
         WEST -> newPosition = Pair(currentPosition.first - magnitude, currentPosition.second)
-        TURN_LEFT -> newDirection = turn(currentDirection, 360-magnitude)
-        TURN_RIGHT -> newDirection = turn(currentDirection, magnitude)
+        TURN_LEFT -> newDirection = turn(currentDirection, magnitude)
+        TURN_RIGHT -> newDirection = turn(currentDirection, 360-magnitude)
         FORWARD -> newPosition = Pair(
             currentPosition.first + currentDirection.first * magnitude,
             currentPosition.second + currentDirection.second * magnitude
