@@ -1,8 +1,5 @@
 import java.io.File
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.PI
+import kotlin.math.*
 
 fun getInput(filename: String): List<String> {
     return File(filename).readLines()
@@ -26,30 +23,30 @@ fun turn(currentDirection: Pair<Int, Int>, angleInDegrees: Int): Pair<Int, Int> 
     val angleInRadians = angleInDegrees * PI/180
     val x = currentDirection.first * cos(angleInRadians) - currentDirection.second * sin(angleInRadians)
     val y = currentDirection.first * sin(angleInRadians) + currentDirection.second * cos(angleInRadians)
-    return Pair(x.toInt(),y.toInt())
+    return Pair(x.roundToInt(),y.roundToInt())
 }
 
 fun executeCommand(
-    input: String, currentPosition: Pair<Int, Int>, currentDirection: Pair<Int, Int>
+    input: String, currentShipPosition: Pair<Int, Int>, currentWayPointPosition: Pair<Int, Int>
 ): Pair<Pair<Int, Int>,Pair<Int, Int>> {
     // currentDirection is a unit vector
     val instruction = input[0]
     val magnitude = input.drop(1).toInt()
-    var newDirection: Pair<Int, Int> = currentDirection
-    var newPosition: Pair<Int, Int> = currentPosition
+    var newWayPointPosition: Pair<Int, Int> = currentWayPointPosition
+    var newShipPosition: Pair<Int, Int> = currentShipPosition
     when (instruction) {
-        NORTH -> newPosition = Pair(currentPosition.first, currentPosition.second + magnitude)
-        SOUTH -> newPosition = Pair(currentPosition.first, currentPosition.second - magnitude)
-        EAST -> newPosition = Pair(currentPosition.first + magnitude, currentPosition.second)
-        WEST -> newPosition = Pair(currentPosition.first - magnitude, currentPosition.second)
-        TURN_LEFT -> newDirection = turn(currentDirection, magnitude)
-        TURN_RIGHT -> newDirection = turn(currentDirection, 360-magnitude)
-        FORWARD -> newPosition = Pair(
-            currentPosition.first + currentDirection.first * magnitude,
-            currentPosition.second + currentDirection.second * magnitude
+        NORTH -> newWayPointPosition = Pair(currentWayPointPosition.first, currentWayPointPosition.second + magnitude)
+        SOUTH -> newWayPointPosition = Pair(currentWayPointPosition.first, currentWayPointPosition.second - magnitude)
+        EAST -> newWayPointPosition = Pair(currentWayPointPosition.first + magnitude, currentWayPointPosition.second)
+        WEST -> newWayPointPosition = Pair(currentWayPointPosition.first - magnitude, currentWayPointPosition.second)
+        TURN_LEFT -> newWayPointPosition = turn(currentWayPointPosition, magnitude)
+        TURN_RIGHT -> newWayPointPosition = turn(currentWayPointPosition, 360-magnitude)
+        FORWARD -> newShipPosition = Pair(
+            currentShipPosition.first + currentWayPointPosition.first * magnitude,
+            currentShipPosition.second + currentWayPointPosition.second * magnitude
         )
     }
-    return Pair(newPosition, newDirection)
+    return Pair(newShipPosition, newWayPointPosition)
 }
 
 fun main(args: Array<String>) {
@@ -57,7 +54,7 @@ fun main(args: Array<String>) {
 
     var currentPosition = Pair(0,0)
     // East
-    var currentDirection = Pair(1, 0)
+    var currentDirection = Pair(10, 1)
 //    println("Initial: Position (${currentPosition.first}, ${currentPosition.second}), Direction: ${currentDirection.first}, ${currentDirection.second})")
     for (command in input) {
         val output = executeCommand(command, currentPosition, currentDirection)
@@ -67,5 +64,5 @@ fun main(args: Array<String>) {
     }
     val distance = getManhattanDistance(currentPosition, Pair(0,0))
 
-    println("First Solution: $distance")
+    println("Second Solution: $distance")
 }
